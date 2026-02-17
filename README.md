@@ -27,9 +27,31 @@ sudo apt update && sudo apt install -y git curl
 
 ## Quick Start
 
-### Option 1: Fully Automated One-Liner (Recommended)
+### Option 1: Interactive One-Liner (Easiest)
 
-For completely hands-free server setup, export your credentials and run one command:
+Just run this command and paste your credentials when prompted:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash
+```
+
+**The script will prompt you for:**
+1. Your Anthropic API key (from [console.anthropic.com](https://console.anthropic.com/))
+2. Your Tailscale auth key (from [Tailscale Admin](https://login.tailscale.com/admin/settings/keys))
+3. Your 1Password service account token (optional, press Enter to skip)
+
+**Then it automatically:**
+- Clones this repository to `~/code/linux-bootstrap`
+- Installs Claude Code CLI
+- Runs the complete setup (system updates, Tailscale join, all tools)
+- Joins your Tailscale network
+- Configures all dotfiles
+
+**That's it!** One command, paste three credentials, fully configured server.
+
+### Option 2: Fully Automated (For Scripts/Automation)
+
+For completely non-interactive setup (e.g., from Claude Code or scripts):
 
 ```bash
 export ANTHROPIC_API_KEY='sk-ant-...'
@@ -39,47 +61,36 @@ export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Optional
 curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash
 ```
 
-Or in a single line:
+If credentials are already set as environment variables, the script skips prompts.
 
-```bash
-ANTHROPIC_API_KEY='sk-ant-...' TAILSCALE_AUTH_KEY='tskey-auth-...' \
-  curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash
-```
+### Option 3: Using 1Password to Retrieve Credentials
 
-**This will:**
-- Clone this repository to `~/code/linux-bootstrap`
-- Install Claude Code CLI
-- Automatically run the complete setup (system updates, Tailscale join, all tools)
-- Join your Tailscale network unattended
-- Configure all dotfiles
-
-**No manual intervention required!** The entire process runs headlessly.
-
-**Where to get credentials:**
-- **ANTHROPIC_API_KEY**: Get from [Anthropic Console](https://console.anthropic.com/)
-- **TAILSCALE_AUTH_KEY**: Generate at [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys) (create a reusable key)
-- **OP_SERVICE_ACCOUNT_TOKEN** (optional): For 1Password CLI automation
-
-**Using 1Password to Retrieve Credentials:**
-
-If you store credentials in 1Password's automation vault:
+If you store credentials in 1Password's automation vault, retrieve and export them first:
 
 ```bash
 # On your local machine with 1Password CLI:
-export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Your 1Password service account token
+export OP_SERVICE_ACCOUNT_TOKEN='ops_...'
 export ANTHROPIC_API_KEY=$(op read "op://automation/anthropic-api-key/credential")
 export TAILSCALE_AUTH_KEY=$(op read "op://automation/tailscale-auth-key/credential")
 
-# Then run the bootstrap on your new server:
+# Then SSH to your new server and run:
+ssh user@newserver
+curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash
+# Script detects env vars and skips prompts
+```
+
+Or pipe the credentials directly via SSH:
+
+```bash
 ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
 TAILSCALE_AUTH_KEY="$TAILSCALE_AUTH_KEY" \
 OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
   ssh user@newserver 'curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash'
 ```
 
-### Option 2: Manual Setup (If You Want More Control)
+### Option 4: Manual Clone (If You Want to Customize First)
 
-If you prefer to run steps manually or customize the process:
+If you want to customize dotfiles or CLAUDE.md before running setup:
 
 #### 1. Clone This Repository
 
@@ -90,13 +101,13 @@ git clone https://github.com/sswaner/linux-bootstrap.git
 cd linux-bootstrap
 ```
 
-#### 2. Set Environment Variables
+#### 2. Customize (Optional)
 
-```bash
-export ANTHROPIC_API_KEY='sk-ant-...'
-export TAILSCALE_AUTH_KEY='tskey-auth-...'
-export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Optional
-```
+Edit any files you want to customize:
+- `dotfiles/.zshrc` - Shell configuration
+- `dotfiles/.gitconfig` - Git settings
+- `CLAUDE.md` - Setup instructions
+- `dotfiles/nvim/init.lua` - Neovim config
 
 #### 3. Run the Bootstrap Script
 
@@ -104,7 +115,7 @@ export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Optional
 ./bootstrap.sh
 ```
 
-The script will automatically:
+The script will prompt for credentials (or use env vars if already set), then automatically:
 - Install Claude Code CLI
 - Run the complete setup via Claude Code
 - Join Tailscale network

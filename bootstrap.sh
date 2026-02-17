@@ -18,41 +18,88 @@ NC='\033[0m' # No Color
 REPO_URL="https://github.com/sswaner/linux-bootstrap.git"
 BOOTSTRAP_DIR="$HOME/code/linux-bootstrap"
 
-# Check for required environment variables
-echo "Checking required environment variables..."
-MISSING_VARS=()
+# Prompt for credentials if not set as environment variables
+echo "Checking credentials..."
+echo ""
 
+# Function to read from terminal (works even when script is piped from curl)
+read_from_terminal() {
+    local prompt="$1"
+    local var_name="$2"
+    local is_secret="${3:-false}"
+
+    if [ "$is_secret" = "true" ]; then
+        read -s -p "$prompt" value < /dev/tty
+        echo "" # New line after secret input
+    else
+        read -p "$prompt" value < /dev/tty
+    fi
+
+    echo "$value"
+}
+
+# Check/prompt for ANTHROPIC_API_KEY
 if [ -z "$ANTHROPIC_API_KEY" ]; then
-    MISSING_VARS+=("ANTHROPIC_API_KEY")
+    echo -e "${YELLOW}ANTHROPIC_API_KEY not found in environment${NC}"
+    echo "Get your API key from: https://console.anthropic.com/"
+    ANTHROPIC_API_KEY=$(read_from_terminal "Enter your Anthropic API key (starts with sk-ant-): " "ANTHROPIC_API_KEY" true)
+
+    if [ -z "$ANTHROPIC_API_KEY" ]; then
+        echo -e "${RED}Error: Anthropic API key is required${NC}"
+        exit 1
+    fi
+
+    # Basic validation
+    if [[ ! "$ANTHROPIC_API_KEY" =~ ^sk-ant- ]]; then
+        echo -e "${YELLOW}Warning: API key doesn't start with 'sk-ant-'. Continuing anyway...${NC}"
+    fi
+    echo ""
+else
+    echo -e "${GREEN}✓ ANTHROPIC_API_KEY found${NC}"
 fi
 
+# Check/prompt for TAILSCALE_AUTH_KEY
 if [ -z "$TAILSCALE_AUTH_KEY" ]; then
-    MISSING_VARS+=("TAILSCALE_AUTH_KEY")
+    echo -e "${YELLOW}TAILSCALE_AUTH_KEY not found in environment${NC}"
+    echo "Generate an auth key at: https://login.tailscale.com/admin/settings/keys"
+    echo "(Create a reusable key with appropriate expiration)"
+    TAILSCALE_AUTH_KEY=$(read_from_terminal "Enter your Tailscale auth key (starts with tskey-auth-): " "TAILSCALE_AUTH_KEY" true)
+
+    if [ -z "$TAILSCALE_AUTH_KEY" ]; then
+        echo -e "${RED}Error: Tailscale auth key is required${NC}"
+        exit 1
+    fi
+
+    # Basic validation
+    if [[ ! "$TAILSCALE_AUTH_KEY" =~ ^tskey-auth- ]]; then
+        echo -e "${YELLOW}Warning: Auth key doesn't start with 'tskey-auth-'. Continuing anyway...${NC}"
+    fi
+    echo ""
+else
+    echo -e "${GREEN}✓ TAILSCALE_AUTH_KEY found${NC}"
 fi
 
-if [ ${#MISSING_VARS[@]} -ne 0 ]; then
-    echo -e "${RED}Error: Missing required environment variables: ${MISSING_VARS[*]}${NC}"
+# Check/prompt for OP_SERVICE_ACCOUNT_TOKEN (optional)
+if [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+    echo -e "${BLUE}OP_SERVICE_ACCOUNT_TOKEN not found (optional)${NC}"
+    echo "Press Enter to skip, or paste your 1Password service account token:"
+    OP_SERVICE_ACCOUNT_TOKEN=$(read_from_terminal "1Password service account token (optional, starts with ops_): " "OP_SERVICE_ACCOUNT_TOKEN" true)
+
+    if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+        # Basic validation
+        if [[ ! "$OP_SERVICE_ACCOUNT_TOKEN" =~ ^ops_ ]]; then
+            echo -e "${YELLOW}Warning: Token doesn't start with 'ops_'. Continuing anyway...${NC}"
+        fi
+        echo -e "${GREEN}✓ 1Password service account token set${NC}"
+    else
+        echo "Skipping 1Password integration"
+    fi
     echo ""
-    echo "Required variables:"
-    echo "  ${BLUE}ANTHROPIC_API_KEY${NC} - Your Anthropic API key for Claude Code"
-    echo "  ${BLUE}TAILSCALE_AUTH_KEY${NC} - Tailscale auth key for headless join"
-    echo ""
-    echo "Optional variables:"
-    echo "  ${BLUE}OP_SERVICE_ACCOUNT_TOKEN${NC} - 1Password service account token"
-    echo ""
-    echo "Usage example:"
-    echo "  ${GREEN}export ANTHROPIC_API_KEY='sk-ant-...'${NC}"
-    echo "  ${GREEN}export TAILSCALE_AUTH_KEY='tskey-auth-...'${NC}"
-    echo "  ${GREEN}curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash${NC}"
-    echo ""
-    echo "Or in one line:"
-    echo "  ${GREEN}ANTHROPIC_API_KEY='sk-ant-...' TAILSCALE_AUTH_KEY='tskey-auth-...' \\${NC}"
-    echo "  ${GREEN}  curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash${NC}"
-    echo ""
-    exit 1
+else
+    echo -e "${GREEN}✓ OP_SERVICE_ACCOUNT_TOKEN found${NC}"
 fi
 
-echo -e "${GREEN}✓ Required environment variables present${NC}"
+echo -e "${GREEN}✓ All required credentials provided${NC}"
 echo ""
 
 # Check if running on supported OS
