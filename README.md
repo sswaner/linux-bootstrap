@@ -191,14 +191,35 @@ As you refine your setup:
 
 ## Security Note
 
-**Never commit credentials to this repository!**
+**Never commit credentials or user-specific setup to this repository!**
 
-All sensitive credentials are passed as environment variables:
-- Store them in 1Password or another secure credential manager
-- Export them only when running the bootstrap script
+This is a **public repository** - anyone can see its contents. Therefore:
+
+### What's Public (in this repo):
+- ✅ Generic installation scripts
+- ✅ Dotfile templates
+- ✅ Tool installation procedures
+- ✅ Documentation
+
+### What's Private (in 1Password):
+- 🔒 API keys and auth tokens
+- 🔒 User setup instructions (usernames, sudo config)
+- 🔒 Generated passwords
+- 🔒 SSH keys or certificates
+- 🔒 Any organization-specific configuration
+
+**All sensitive credentials and setup instructions are passed via:**
+- Environment variables for credentials
+- 1Password Secure Notes for user setup instructions
 - The bootstrap script does not log or persist these values
 
 **Recommended**: Store all credentials in 1Password's automation vault and retrieve them when needed.
+
+### User Setup Privacy
+
+User setup instructions (creating users, configuring sudo, etc.) are stored in a 1Password Secure Note called `linux-user-setup-instructions`. This keeps sensitive setup details private while still allowing full automation.
+
+A template for this secure note is provided locally but is **not committed to the public repository**.
 
 ### Required Credentials in 1Password Automation Vault
 
@@ -208,6 +229,14 @@ For fully automated server setup, store these credentials in your 1Password auto
 - `anthropic-api-key` - Your Anthropic API key (starts with `sk-ant-`)
 - `tailscale-auth-key` - Tailscale reusable auth key (starts with `tskey-auth-`)
 - `1password-service-account-token` - 1Password service account token (starts with `ops_`)
+
+**Required for User Setup:**
+- `linux-user-setup-instructions` - Secure Note containing user setup instructions
+  - Creates target user (e.g., "shawn") if needed
+  - Configures passwordless sudo
+  - Stores generated passwords back in 1Password
+  - Ensures all installations are available to the target user
+  - **This is NOT in the public repo for security reasons**
 
 **Required for PR Creation (Phase 2):**
 - `github-token` - GitHub personal access token with `repo` scope for creating PRs

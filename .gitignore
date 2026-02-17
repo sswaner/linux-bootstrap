@@ -7,6 +7,9 @@
 credentials.json
 secrets.json
 
+# User setup template (contains sensitive setup instructions)
+USER_SETUP_TEMPLATE.md
+
 # 1Password
 .op/
 

@@ -227,7 +227,49 @@ uv python list
 python3 --version
 ```
 
-### 6. Configuration Files
+### 6. User Setup (from 1Password Secure Note)
+
+**Important**: User setup instructions are stored privately in 1Password, not in this public repository.
+
+If the `OP_SERVICE_ACCOUNT_TOKEN` environment variable is set, read and execute user setup instructions:
+
+```bash
+if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+    echo "=== User Setup ==="
+    echo "Retrieving user setup instructions from 1Password..."
+
+    USER_SETUP_INSTRUCTIONS=$(op read "op://automation/linux-user-setup-instructions/notesPlain" 2>/dev/null)
+
+    if [ -n "$USER_SETUP_INSTRUCTIONS" ]; then
+        echo "✓ User setup instructions retrieved"
+        echo ""
+        echo "Instructions:"
+        echo "$USER_SETUP_INSTRUCTIONS"
+        echo ""
+        echo "Executing user setup based on these instructions..."
+
+        # Execute the instructions
+        # The instructions should be self-contained bash commands or clear steps
+        # Example: Create user, configure sudo, set up SSH keys, etc.
+
+    else
+        echo "Warning: Could not retrieve user setup instructions from 1Password"
+        echo "Expected location: op://automation/linux-user-setup-instructions"
+        echo "Skipping user setup"
+    fi
+else
+    echo "Note: OP_SERVICE_ACCOUNT_TOKEN not set, skipping user setup from 1Password"
+fi
+echo ""
+```
+
+**Note**: The secure note should contain instructions for:
+- Creating the target user if needed
+- Configuring sudo privileges
+- Setting up SSH keys
+- Any other user-specific configuration
+
+### 7. Configuration Files
 
 #### Create necessary directories
 
@@ -279,7 +321,7 @@ Verify git config was copied:
 git config --global --list
 ```
 
-### 7. Verification
+### 8. Verification
 
 Run verification checks for all installed tools:
 
