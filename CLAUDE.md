@@ -19,6 +19,10 @@ This setup process will:
 - Sudo privileges
 - Internet connectivity
 - This repository cloned to ~/code/linux-bootstrap
+- Environment variables set (handled by bootstrap.sh):
+  - `ANTHROPIC_API_KEY` - For Claude Code authentication
+  - `TAILSCALE_AUTH_KEY` - For headless Tailscale join
+  - `OP_SERVICE_ACCOUNT_TOKEN` (optional) - For 1Password CLI authentication
 
 ## Instructions
 
@@ -51,18 +55,27 @@ curl -fsSL https://tailscale.com/install.sh | sh
 
 #### Start and authenticate Tailscale
 
+**Headless Mode (Recommended):**
+
+If the `TAILSCALE_AUTH_KEY` environment variable is set, use it for unattended authentication:
+
 ```bash
-sudo tailscale up
+if [ -n "$TAILSCALE_AUTH_KEY" ]; then
+    sudo tailscale up --auth-key="$TAILSCALE_AUTH_KEY" --ssh
+    echo "✓ Tailscale connected via auth key"
+else
+    echo "Warning: TAILSCALE_AUTH_KEY not set, falling back to interactive mode"
+    sudo tailscale up --ssh
+    echo "Please open the URL above in a browser to authenticate"
+fi
 ```
-
-This will display a URL for authentication. The user will need to open this URL in a browser and authenticate with their Tailscale account.
-
-**Wait for user to complete authentication before continuing.**
 
 Verify Tailscale is connected:
 ```bash
 tailscale status
 ```
+
+**Note**: The `--ssh` flag enables Tailscale SSH for remote access.
 
 ### 3. Development Tools
 
@@ -95,6 +108,21 @@ Verify installation:
 op --version
 ```
 
+**1Password Service Account (Optional):**
+
+If the `OP_SERVICE_ACCOUNT_TOKEN` environment variable is set, configure it:
+
+```bash
+if [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+    export OP_SERVICE_ACCOUNT_TOKEN
+    echo "✓ 1Password service account token configured"
+    # Test the connection
+    op whoami || echo "Warning: Could not authenticate with 1Password"
+else
+    echo "Note: OP_SERVICE_ACCOUNT_TOKEN not set, skipping 1Password authentication"
+fi
+```
+
 #### GitHub CLI
 
 ```bash
@@ -111,7 +139,7 @@ Verify installation:
 gh --version
 ```
 
-**Note**: User may want to authenticate GitHub CLI with `gh auth login` - ask if they'd like to do this now.
+**Note**: GitHub CLI authentication is skipped during headless setup. Users can authenticate later with `gh auth login` when needed.
 
 #### Cloudflare Wrangler
 
@@ -231,25 +259,24 @@ cp ~/code/linux-bootstrap/dotfiles/nvim/init.lua ~/.config/nvim/init.lua
 sudo apt install -y zsh
 ```
 
-Ask user if they want to change their default shell to ZSH:
+**Headless Mode**: Default shell change is skipped during automated setup. Users can change later with:
 ```bash
 chsh -s $(which zsh)
 ```
 
-**Note**: Shell change takes effect on next login.
-
 #### Configure Git
 
-Check if git config needs user information:
+The `.gitconfig` file from dotfiles contains template values. In headless mode, git config is left as-is from the dotfiles. Users should update their name and email after setup:
+
 ```bash
-git config --global user.name
-git config --global user.email
+# Users can update these values later:
+# git config --global user.name "Your Name"
+# git config --global user.email "your.email@example.com"
 ```
 
-If not set, ask user for their name and email, then configure:
+Verify git config was copied:
 ```bash
-git config --global user.name "User Name"
-git config --global user.email "user@example.com"
+git config --global --list
 ```
 
 ### 7. Verification

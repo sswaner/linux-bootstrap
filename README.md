@@ -27,28 +27,59 @@ sudo apt update && sudo apt install -y git curl
 
 ## Quick Start
 
-### Option 1: One-Line Install (Fastest)
+### Option 1: Fully Automated One-Liner (Recommended)
 
-For the absolute fastest setup, run this single command:
+For completely hands-free server setup, export your credentials and run one command:
 
 ```bash
+export ANTHROPIC_API_KEY='sk-ant-...'
+export TAILSCALE_AUTH_KEY='tskey-auth-...'
+export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Optional
+
 curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash
 ```
 
-This will:
-- Download and run the bootstrap script
-- Install Claude Code CLI
-- Provide instructions for the next steps
+Or in a single line:
 
-After this completes, clone the repository to access the full setup:
 ```bash
-mkdir -p ~/code
-cd ~/code
-git clone https://github.com/sswaner/linux-bootstrap.git
-cd linux-bootstrap
+ANTHROPIC_API_KEY='sk-ant-...' TAILSCALE_AUTH_KEY='tskey-auth-...' \
+  curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash
 ```
 
-### Option 2: Manual Clone and Run
+**This will:**
+- Clone this repository to `~/code/linux-bootstrap`
+- Install Claude Code CLI
+- Automatically run the complete setup (system updates, Tailscale join, all tools)
+- Join your Tailscale network unattended
+- Configure all dotfiles
+
+**No manual intervention required!** The entire process runs headlessly.
+
+**Where to get credentials:**
+- **ANTHROPIC_API_KEY**: Get from [Anthropic Console](https://console.anthropic.com/)
+- **TAILSCALE_AUTH_KEY**: Generate at [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys) (create a reusable key)
+- **OP_SERVICE_ACCOUNT_TOKEN** (optional): For 1Password CLI automation
+
+**Using 1Password to Retrieve Credentials:**
+
+If you store credentials in 1Password's automation vault:
+
+```bash
+# On your local machine with 1Password CLI:
+export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Your 1Password service account token
+export ANTHROPIC_API_KEY=$(op read "op://automation/anthropic-api-key/credential")
+export TAILSCALE_AUTH_KEY=$(op read "op://automation/tailscale-auth-key/credential")
+
+# Then run the bootstrap on your new server:
+ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+TAILSCALE_AUTH_KEY="$TAILSCALE_AUTH_KEY" \
+OP_SERVICE_ACCOUNT_TOKEN="$OP_SERVICE_ACCOUNT_TOKEN" \
+  ssh user@newserver 'curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootstrap.sh | bash'
+```
+
+### Option 2: Manual Setup (If You Want More Control)
+
+If you prefer to run steps manually or customize the process:
 
 #### 1. Clone This Repository
 
@@ -59,36 +90,25 @@ git clone https://github.com/sswaner/linux-bootstrap.git
 cd linux-bootstrap
 ```
 
-#### 2. Run the Bootstrap Script
-
-This installs Claude Code CLI:
+#### 2. Set Environment Variables
 
 ```bash
-chmod +x bootstrap.sh
+export ANTHROPIC_API_KEY='sk-ant-...'
+export TAILSCALE_AUTH_KEY='tskey-auth-...'
+export OP_SERVICE_ACCOUNT_TOKEN='ops_...'  # Optional
+```
+
+#### 3. Run the Bootstrap Script
+
+```bash
 ./bootstrap.sh
 ```
 
-The script will:
-- Verify git and curl are available
+The script will automatically:
 - Install Claude Code CLI
-- Provide next steps
-
-### Next Step: Complete Setup with Claude Code
-
-Once Claude Code is installed, have it execute the comprehensive setup:
-
-```bash
-claude code
-# Then in the Claude interface, reference CLAUDE.md for setup instructions
-# Or simply say: "Please follow the instructions in CLAUDE.md to set up this server"
-```
-
-Claude Code will:
-- Install all development tools
-- Configure Tailscale VPN
-- Set up Python environments
-- Copy dotfiles to your home directory
-- Verify everything is working
+- Run the complete setup via Claude Code
+- Join Tailscale network
+- Install all tools and configure dotfiles
 
 ## What's in This Repository
 
@@ -146,16 +166,47 @@ As you refine your setup:
 3. Commit and push changes so future servers get the latest setup
 4. Test changes on a fresh VM or container when possible
 
+## Security Note
+
+**Never commit credentials to this repository!**
+
+All sensitive credentials are passed as environment variables:
+- Store them in 1Password or another secure credential manager
+- Export them only when running the bootstrap script
+- The bootstrap script does not log or persist these values
+
+**Recommended**: Store all credentials in 1Password's automation vault and retrieve them when needed.
+
+### Required Credentials in 1Password Automation Vault
+
+For fully automated server setup, store these credentials in your 1Password automation vault:
+
+**Required for Bootstrap:**
+- `anthropic-api-key` - Your Anthropic API key (starts with `sk-ant-`)
+- `tailscale-auth-key` - Tailscale reusable auth key (starts with `tskey-auth-`)
+- `1password-service-account-token` - 1Password service account token (starts with `ops_`)
+
+**Recommended for Full Automation:**
+- `github-token` - GitHub personal access token for `gh` CLI authentication
+- `aws-access-key-id` - AWS access key ID for `aws` CLI
+- `aws-secret-access-key` - AWS secret access key for `aws` CLI
+- `cloudflare-api-token` - Cloudflare API token for Wrangler authentication
+
+**Optional (User-Specific):**
+- `git-user-name` - Your name for git commits
+- `git-user-email` - Your email for git commits
+
 ## Why This Approach?
 
-**Traditional approach**: Manually install each tool, configure each service, copy dotfiles, forget what you did
+**Traditional approach**: SSH into server → manually install each tool → configure each service → copy dotfiles → spend hours → forget what you did → repeat on next server
 
-**This approach**:
-- Clone repo → run one script → let AI do the rest
-- Consistent setup across all servers
-- Version controlled configuration
-- Easy to update and maintain
-- Reproducible environments
+**This automated approach**:
+- ✨ One command to go from fresh server to fully configured
+- 🤖 Let AI handle the tedious installation and configuration
+- 📝 Version controlled configuration (no more "how did I configure that?")
+- 🔄 Consistent setup across all servers
+- ⚡ Save hours on every new server setup
+- 🔒 Secure credential handling via environment variables
 
 ## License
 

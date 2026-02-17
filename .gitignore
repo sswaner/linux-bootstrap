@@ -1,0 +1,34 @@
+# Credentials and secrets
+.env
+.env.*
+*.key
+*.pem
+*.token
+credentials.json
+secrets.json
+
+# 1Password
+.op/
+
+# Backup files
+*.backup.*
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Test/temporary files
+test/
+tmp/
+temp/
