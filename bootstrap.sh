@@ -99,6 +99,22 @@ else
     echo -e "${GREEN}✓ OP_SERVICE_ACCOUNT_TOKEN found${NC}"
 fi
 
+# Check/prompt for GITHUB_TOKEN (optional, for PR creation)
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo -e "${BLUE}GITHUB_TOKEN not found (optional)${NC}"
+    echo "Press Enter to skip, or paste your GitHub personal access token for PR creation:"
+    GITHUB_TOKEN=$(read_from_terminal "GitHub token (optional, starts with ghp_ or github_pat_): " "GITHUB_TOKEN" true)
+
+    if [ -n "$GITHUB_TOKEN" ]; then
+        echo -e "${GREEN}✓ GitHub token set (will enable PR creation)${NC}"
+    else
+        echo "Skipping GitHub authentication (PR creation will be manual)"
+    fi
+    echo ""
+else
+    echo -e "${GREEN}✓ GITHUB_TOKEN found${NC}"
+fi
+
 echo -e "${GREEN}✓ All required credentials provided${NC}"
 echo ""
 
@@ -229,11 +245,13 @@ echo ""
 # Change to bootstrap directory
 cd "$BOOTSTRAP_DIR"
 
-# Run Claude Code with the setup prompt
-# Using --yes flag to auto-approve actions (if available)
-# The prompt references CLAUDE.md which contains all setup instructions
-claude code --api-key "$ANTHROPIC_API_KEY" <<'EOF'
-Please follow the instructions in CLAUDE.md to set up this server.
+# Phase 1: Run setup with Claude Code (exits on completion)
+echo "========================================="
+echo "Phase 1: Running Setup"
+echo "========================================="
+echo ""
+
+SETUP_PROMPT="Please follow the instructions in CLAUDE.md to set up this server.
 
 Important notes:
 - Use headless/non-interactive mode for all installations
@@ -242,17 +260,119 @@ Important notes:
 - Skip any interactive authentication steps that require manual user input
 - Run all commands and verify successful completion
 - If any step fails, log the error but continue with remaining steps
+- After completing all steps, provide a brief summary and exit
 
-After completing all steps, provide a summary of:
-- What was successfully installed
-- What failed (if anything)
-- Any manual steps still required
-EOF
+This session will exit automatically when complete."
+
+claude code --api-key "$ANTHROPIC_API_KEY" -p "$SETUP_PROMPT"
+
+SETUP_EXIT_CODE=$?
+
+if [ $SETUP_EXIT_CODE -ne 0 ]; then
+    echo -e "${YELLOW}Warning: Setup phase exited with code $SETUP_EXIT_CODE${NC}"
+    echo "Continuing to verification phase..."
+    echo ""
+fi
+
+# Authenticate GitHub CLI if token available (for PR creation)
+if [ -n "$GITHUB_TOKEN" ]; then
+    echo "Authenticating GitHub CLI for PR creation..."
+    echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ GitHub CLI authenticated${NC}"
+        export GH_TOKEN="$GITHUB_TOKEN"
+    else
+        echo -e "${YELLOW}Warning: GitHub authentication failed, PR creation will be skipped${NC}"
+    fi
+    echo ""
+elif [ -n "$OP_SERVICE_ACCOUNT_TOKEN" ]; then
+    # Try to get GitHub token from 1Password
+    echo "Attempting to retrieve GitHub token from 1Password..."
+    GITHUB_TOKEN=$(op read "op://automation/github-token/credential" 2>/dev/null || echo "")
+    if [ -n "$GITHUB_TOKEN" ]; then
+        echo "$GITHUB_TOKEN" | gh auth login --with-token 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ GitHub CLI authenticated via 1Password${NC}"
+            export GH_TOKEN="$GITHUB_TOKEN"
+        fi
+    else
+        echo -e "${BLUE}Note: GitHub token not found in 1Password (op://automation/github-token)${NC}"
+        echo "PR creation will be skipped in verification phase"
+    fi
+    echo ""
+fi
+
+# Phase 2: Verify and improve (exits on completion)
+echo ""
+echo "========================================="
+echo "Phase 2: Verification & Improvement"
+echo "========================================="
+echo ""
+echo "Claude Code will now verify the installation and propose improvements if needed..."
+echo ""
+
+VERIFY_PROMPT="Your task is to verify the server setup and improve the bootstrap repository if needed.
+
+**Step 1: Verification**
+Compare the actual state of this server against the expected final state documented in CLAUDE.md:
+
+1. Check all tools listed in CLAUDE.md are installed and working:
+   - Run version checks: tailscale, aws, op, gh, wrangler, zellij, nvim, uv, python
+   - Verify Tailscale is connected: tailscale status
+   - Check dotfiles are in place: ~/.zshrc, ~/.bashrc, ~/.gitconfig, ~/.config/nvim/init.lua
+   - Verify system is fully patched: apt list --upgradable
+
+2. Document any gaps or failures you find
+
+**Step 2: Fix Issues (if any)**
+If you found any gaps or failures:
+- Attempt to fix them now
+- Document what you fixed and why it failed initially
+
+**Step 3: Improve Repository (if needed)**
+If you found issues that indicate problems with the bootstrap process:
+
+1. Update relevant files in $BOOTSTRAP_DIR:
+   - bootstrap.sh: Fix installation logic
+   - CLAUDE.md: Update instructions or add missing steps
+   - README.md: Document new requirements or gotchas
+   - Add new dotfiles if needed
+
+2. Create a git branch with your improvements:
+   - Branch name: bootstrap-improvements-\$(date +%Y%m%d-%H%M%S)
+   - Commit your changes with clear messages explaining the fixes
+   - Push the branch to origin
+
+3. Create a pull request:
+   - Use 'gh pr create' with a clear title and description
+   - Document what failed, why, and how you fixed it
+   - Reference this server setup in the PR description
+
+**Step 4: Summary Report**
+Provide a final summary:
+- What you verified and found working
+- What issues you found and fixed
+- What repository improvements you made (if any)
+- PR URL if created (or confirmation that no improvements needed)
+
+After completing this analysis and any improvements, exit automatically."
+
+claude code --api-key "$ANTHROPIC_API_KEY" -p "$VERIFY_PROMPT"
+
+VERIFY_EXIT_CODE=$?
 
 echo ""
 echo "========================================="
-echo "Setup Complete!"
+echo "Bootstrap Complete!"
 echo "========================================="
+echo ""
+
+if [ $VERIFY_EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✓ Setup and verification completed successfully${NC}"
+else
+    echo -e "${YELLOW}⚠ Verification phase exited with code $VERIFY_EXIT_CODE${NC}"
+fi
+
 echo ""
 echo "Your server is now configured and ready to use."
 echo ""

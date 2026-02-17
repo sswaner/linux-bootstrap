@@ -40,14 +40,26 @@ curl -fsSL https://raw.githubusercontent.com/sswaner/linux-bootstrap/main/bootst
 2. Your Tailscale auth key (from [Tailscale Admin](https://login.tailscale.com/admin/settings/keys))
 3. Your 1Password service account token (optional, press Enter to skip)
 
-**Then it automatically:**
+**Then it automatically runs a two-phase process:**
+
+**Phase 1 - Setup:**
 - Clones this repository to `~/code/linux-bootstrap`
 - Installs Claude Code CLI
 - Runs the complete setup (system updates, Tailscale join, all tools)
 - Joins your Tailscale network
 - Configures all dotfiles
 
-**That's it!** One command, paste three credentials, fully configured server.
+**Phase 2 - Verification & Improvement:**
+- Verifies all tools are installed and working
+- Compares actual state against expected state in CLAUDE.md
+- If gaps found, attempts to fix them
+- Updates repository files if improvements are needed
+- Creates a pull request with proposed fixes (if any)
+
+**That's it!** One command, paste three credentials, and you get:
+- ✅ Fully configured server
+- ✅ Self-verification of the setup
+- ✅ Automatic improvement PRs if issues are found
 
 ### Option 2: Fully Automated (For Scripts/Automation)
 
@@ -197,8 +209,13 @@ For fully automated server setup, store these credentials in your 1Password auto
 - `tailscale-auth-key` - Tailscale reusable auth key (starts with `tskey-auth-`)
 - `1password-service-account-token` - 1Password service account token (starts with `ops_`)
 
+**Required for PR Creation (Phase 2):**
+- `github-token` - GitHub personal access token with `repo` scope for creating PRs
+  - Create at: https://github.com/settings/tokens/new
+  - Scopes needed: `repo`, `workflow`
+  - The verification phase will use this to create improvement PRs
+
 **Recommended for Full Automation:**
-- `github-token` - GitHub personal access token for `gh` CLI authentication
 - `aws-access-key-id` - AWS access key ID for `aws` CLI
 - `aws-secret-access-key` - AWS secret access key for `aws` CLI
 - `cloudflare-api-token` - Cloudflare API token for Wrangler authentication
@@ -206,6 +223,8 @@ For fully automated server setup, store these credentials in your 1Password auto
 **Optional (User-Specific):**
 - `git-user-name` - Your name for git commits
 - `git-user-email` - Your email for git commits
+
+**Note**: If GitHub token is not provided, the verification phase will still run but won't be able to create PRs automatically. It will provide the improvements locally for manual PR creation.
 
 ## Why This Approach?
 

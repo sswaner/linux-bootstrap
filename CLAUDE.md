@@ -340,6 +340,62 @@ echo "  • Reload shell to apply dotfile changes: exec \$SHELL"
 echo ""
 ```
 
+## Expected Final State
+
+After successful completion of all setup steps, the server should have:
+
+### Installed Tools
+- **Tailscale**: Installed, running, and connected to network
+- **AWS CLI**: v2 installed (`aws --version` works)
+- **1Password CLI**: Installed (`op --version` works)
+- **GitHub CLI**: Installed (`gh --version` works)
+- **Wrangler**: Installed (`wrangler --version` works)
+- **Node.js**: LTS version installed (`node --version` works)
+- **npm**: Installed (`npm --version` works)
+- **Zellij**: Latest version installed (`zellij --version` works)
+- **Neovim**: Latest version installed (`nvim --version` works)
+- **ZSH**: Installed and available (`zsh --version` works)
+- **uv**: Python package manager installed (`uv --version` works)
+- **Python 3.14**: Installed via uv (`uv run python3.14 --version` works)
+- **Python 3.13**: Installed via uv (`uv run python3.13 --version` works)
+
+### Configured Files
+- **~/.zshrc**: Shell configuration in place
+- **~/.bashrc**: Shell configuration in place
+- **~/.gitconfig**: Git configuration in place
+- **~/.config/nvim/init.lua**: Neovim configuration in place
+
+### System State
+- **System patches**: Fully up to date (0 or 1 upgradable packages)
+- **Tailscale network**: Connected and accessible
+- **Repository**: Cloned to ~/code/linux-bootstrap
+
+### Symbolic Links
+- **/usr/local/bin/vim**: Points to nvim
+- **/usr/local/bin/nvim**: Exists and is executable
+
+### Verification Commands
+These commands should all succeed:
+```bash
+tailscale status
+aws --version
+op --version
+gh --version
+wrangler --version
+node --version
+npm --version
+zellij --version
+nvim --version
+vim --version
+zsh --version
+uv --version
+python3 --version
+test -f ~/.zshrc && echo "zshrc OK"
+test -f ~/.bashrc && echo "bashrc OK"
+test -f ~/.gitconfig && echo "gitconfig OK"
+test -f ~/.config/nvim/init.lua && echo "nvim config OK"
+```
+
 ## Notes
 
 - All installation steps are designed to be idempotent (safe to run multiple times)
