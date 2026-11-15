@@ -83,7 +83,10 @@ tailscale status
 
 ```bash
 cd /tmp
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+# AWS publishes x86_64 and aarch64 builds under the names `uname -m` prints.
+AWS_ARCH=$(uname -m)
+case "$AWS_ARCH" in x86_64|aarch64) ;; *) echo "No AWS CLI v2 build for $AWS_ARCH" >&2; false ;; esac
+curl "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
 rm -rf aws awscliv2.zip
@@ -96,11 +99,20 @@ aws --version
 
 #### 1Password CLI
 
+1Password's apt repository, which serves amd64 and arm64 and keeps `op` updated
+with the rest of the system. `dpkg --print-architecture` picks the right one.
+
 ```bash
-cd /tmp
-curl -fsSL https://downloads.1password.com/linux/debian/amd64/stable/1password-cli-latest-amd64.deb -o 1password-cli.deb
-sudo dpkg -i 1password-cli.deb
-rm 1password-cli.deb
+curl -fsSL https://downloads.1password.com/linux/keys/1password.asc \
+  | sudo gpg --dearmor --yes --output /usr/share/keyrings/1password-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" \
+  | sudo tee /etc/apt/sources.list.d/1password.list > /dev/null
+sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/ /usr/share/debsig/keyrings/AC2D62742012EA22
+curl -fsSL https://downloads.1password.com/linux/debian/debsig/1password.pol \
+  | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol > /dev/null
+curl -fsSL https://downloads.1password.com/linux/keys/1password.asc \
+  | sudo gpg --dearmor --yes --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+sudo apt update && sudo apt install -y 1password-cli
 ```
 
 Verify installation:
